@@ -1,0 +1,10 @@
+services:
+  telegram_bot:
+    build:
+      context: .
+      dockerfile: dockerfile.telegramBot
+    container_name: telegram_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: python bot.py

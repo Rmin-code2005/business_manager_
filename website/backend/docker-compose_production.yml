@@ -1,0 +1,196 @@
+services:
+
+  django:
+    init: true
+    stop_grace_period: 30s
+    build:
+      context: .
+
+    container_name: django
+
+    command: >
+      command: >
+      sh -c "
+        python manage.py migrate &&
+        python manage.py collectstatic --noinput &&
+        python manage.py warmup_prices &&
+        gunicorn core.wsgi:application \
+        --bind 0.0.0.0:8000 \
+        --workers 3 \
+        --timeout 120
+      "
+
+    env_file:
+      - .env.production
+
+    volumes:
+      - static_data:/app/staticfiles
+      - media_data:/app/media
+
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - app_network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    
+
+
+  celery_worker:
+    build:
+      context: .
+    stop_grace_period: 60s
+    container_name: celery_worker
+    init: true
+    command: celery -A core worker -l info
+
+    env_file:
+      - .env.production
+
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - app_network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+
+  celery_beat:
+    build:
+      context: .
+
+    container_name: celery_beat
+    stop_grace_period: 60s
+    command: celery -A core beat -l info
+    init: true
+    env_file:
+      - .env.production
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    networks:
+      - app_network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+
+  postgres:
+    image: postgres:16-alpine
+    stop_grace_period: 60s
+    container_name: postgres
+
+    env_file:
+      - .env.production
+
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    restart: unless-stopped
+
+    networks:
+      - app_network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+
+  redis:
+    image: redis:7-alpine
+
+    container_name: redis
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    restart: unless-stopped
+
+    networks:
+      - app_network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+
+  nginx:
+    init: true
+    build:
+      context: ..
+      dockerfile: backend/nginx/Dockerfile
+
+    container_name: nginx
+
+    ports:
+      - "80:80"
+
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_data:/static
+      - media_data:/media
+
+    depends_on:
+      - django
+
+    restart: unless-stopped
+
+    networks:
+      - app_network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+
+networks:
+  app_network:
+    driver: bridge
+
+
+volumes:
+  postgres_data:
+  static_data:
+  media_data:

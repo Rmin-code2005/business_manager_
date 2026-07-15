@@ -1,0 +1,59 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:        #0e0f11;
+  --surface:   #16181c;
+  --surface-2: #1e2026;
+  --border:    #2a2d35;
+  --border-2:  #363a45;
+
+  --accent:    #4f8eff;
+  --accent-dim:#1f3d7a;
+  --accent-glow: rgba(79,142,255,0.18);
+
+  --text-primary:   #f0f2f7;
+  --text-secondary: #8b91a1;
+  --text-muted:     #555c6e;
+
+  --success: #34d399;
+  --error:   #f87171;
+  --warning: #fbbf24;
+
+  --radius-sm: 8px;
+  --radius:    12px;
+  --radius-lg: 18px;
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body:    'Inter', sans-serif;
+
+  --shadow-card: 0 4px 32px rgba(0,0,0,0.45);
+  --shadow-btn:  0 2px 12px rgba(79,142,255,0.35);
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+/* ── scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 99px; }
+
+/* ── utility ── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
